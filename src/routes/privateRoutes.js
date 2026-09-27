@@ -28,7 +28,21 @@ export const privateRoutes = [
     component: lazy(() => import("../pages/CompanyManagement/CompanyType.jsx")),
     isPrivate: true,
     showInMenu: true,
-  }
+  },
+  {
+    name: "User Types",
+    path: "/user-types",
+    component: lazy(() => import("../pages/UserManagement/UserTypes.jsx")),
+    isPrivate: true,
+    showInMenu: true,
+  },
+  {
+    name: "Company",
+    path: "/company",
+    component: lazy(() => import("../pages/CompanyManagement/Company.jsx")),
+    isPrivate: true,
+    showInMenu: true,
+  },
 //   {
 //     name: "Profile",
 //     path: "/profile",
