@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import AdminLayout from "../components/layout/AdminLayout";
 import ProtectedRoute from "./ProtectedRoute";
+import GuestRoute from "./GuestRoute";
 import TitleHandler from "../components/TitleHandler";
 import SpinLoader from "../components/SpinLoader";
 
@@ -20,8 +21,20 @@ export default function AppRoutes() {
       <Suspense fallback={<SpinLoader />}>
         <Routes>
           {/* Public */}
-          {publicRoutes.map(({ path, component: Component }) => (
-            <Route key={path} path={path} element={<Component />} />
+          {publicRoutes.map(({ path, component: Component, guestOnly }) => (
+            <Route
+              key={path}
+              path={path}
+              element={
+                guestOnly ? (
+                  <GuestRoute>
+                    <Component />
+                  </GuestRoute>
+                ) : (
+                  <Component />
+                )
+              }
+            />
           ))}
 
           {/* Private (wrapped in AdminLayout) */}

@@ -1,15 +1,13 @@
 import { publicRoutes } from "./publicRoutes";
+import { privateRoutes } from "./privateRoutes";
 
-// Top-level route config
-const routeModules = [...publicRoutes];
+const routeModules = [...publicRoutes, ...privateRoutes];
 
-// Flatten for routing (no groups among public routes)
 export const allRoutes = routeModules.flatMap((r) => {
   if (r.isGroup && r.children) return r.children;
   return [r];
 });
 
-// Path → title map for TitleHandler
 export const routeTitles = allRoutes.reduce((acc, r) => {
   acc[r.path] = r.name;
   return acc;

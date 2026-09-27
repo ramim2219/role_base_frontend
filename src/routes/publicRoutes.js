@@ -7,12 +7,6 @@ export const publicRoutes = [
     component: lazy(() => import("../pages/Login")),
     isPrivate: false,
     showInMenu: false,
+    guestOnly: true,        // ← add this line
   },
-//   {
-//     name: "Signup",
-//     path: "/signup",
-//     component: lazy(() => import("../pages/Signup")),
-//     isPrivate: false,
-//     showInMenu: false,
-//   },
 ];

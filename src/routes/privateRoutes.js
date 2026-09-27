@@ -1,0 +1,60 @@
+import { lazy } from "react";
+
+export const privateRoutes = [
+  {
+    name: "Dashboard",
+    path: "/dashboard",
+    component: lazy(() => import("../pages/Dashboard")),
+    isPrivate: true,
+    showInMenu: true,
+  },
+  {
+    name: "Add Menu",
+    path: "/add-menu",
+    component: lazy(() => import("../pages/MenuManagement/AddMenu.jsx")),
+    isPrivate: true,
+    showInMenu: true,
+  },
+  {
+    name: "Users",
+    path: "/users",
+    component: lazy(() => import("../pages/UserManagement/Users.jsx")),
+    isPrivate: true,
+    showInMenu: true,
+  },
+//   {
+//     name: "Profile",
+//     path: "/profile",
+//     component: lazy(() => import("../pages/Profile")),
+//     isPrivate: true,
+//     showInMenu: true,
+//   },
+//   {
+//     name: "Settings",
+//     path: "/settings",
+//     component: lazy(() => import("../pages/Settings")),
+//     isPrivate: true,
+//     showInMenu: true,
+//   },
+//   {
+//     name: "Users",
+//     path: "/users",
+//     component: lazy(() => import("../pages/Users")),
+//     isPrivate: true,
+//     showInMenu: true,
+//   },
+//   {
+//     name: "Help",
+//     path: "/help",
+//     component: lazy(() => import("../pages/Help")),
+//     isPrivate: true,
+//     showInMenu: true,
+//   },
+//   {
+//     name: "Billing",
+//     path: "/billing",
+//     component: lazy(() => import("../pages/Billing")),
+//     isPrivate: true,
+//     showInMenu: true,
+//   },
+];
