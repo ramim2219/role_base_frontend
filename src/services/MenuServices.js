@@ -1,14 +1,5 @@
 import apiClient from "../Axios/axiosConfig";
 
-// ─────────────────────────────────────────────────────
-// Response shape from MenuController:
-//   { messageCode: 1200 | 3002 | 4000 | 5000, message: string, data: ... }
-//
-// The axios interceptor only rejects on HTTP errors (401, 500, network).
-// Your controller always returns HTTP 200 — even on business errors —
-// with a messageCode inside the body. So callers must check messageCode.
-// ─────────────────────────────────────────────────────
-
 export const MESSAGE_CODE = {
   OK: 1200,
   DUPLICATE: 3002,
@@ -16,110 +7,97 @@ export const MESSAGE_CODE = {
   SERVER_ERR: 5000,
 };
 
-/**
- * Wrap a service call so business-level errors (messageCode !== 1200)
- * throw a real Error. Components can then use try/catch + toast as usual.
- */
 async function unwrap(promise) {
   const res = await promise;
   const body = res.data;
-
   if (body?.messageCode && body.messageCode !== MESSAGE_CODE.OK) {
     throw new Error(body.message || `Request failed (${body.messageCode})`);
   }
   return body;
 }
 
-// ═════════════════════════════════════════════════════
-// 1. GET ALL MENUS
-// GET /api/Menu/get_all_menus
-// Returns nested tree
-// ═════════════════════════════════════════════════════
-export const fetchAllMenus = async () => {
-  return unwrap(apiClient.get("Menu/get_all_menus"));
-};
+// ═══════════════ MENU CRUD ═══════════════
+export const fetchAllMenus = async () =>
+  unwrap(apiClient.get("Menu/get_all_menus"));
 
-// ═════════════════════════════════════════════════════
-// 2. GET MENU BY ID
-// GET /api/Menu/get_menus_by_id?menu_id=X
-// Returns: [ { menu } ]  (array with one element)
-// ═════════════════════════════════════════════════════
-export const fetchMenuById = async (menuId) => {
-  return unwrap(
-    apiClient.get("Menu/get_menus_by_id", {
-      params: { menu_id: menuId },
+export const fetchMenuById = async (menuId) =>
+  unwrap(apiClient.get("Menu/get_menus_by_id", { params: { menu_id: menuId } }));
+
+export const saveMenu = async (payload) =>
+  unwrap(apiClient.post("Menu/saveMenu", payload));
+
+export const updateMenu = async (payload) =>
+  unwrap(apiClient.put("Menu/update_menu", payload));
+
+export const deleteMenu = async (menuId) =>
+  unwrap(apiClient.delete("Menu/delete_menu", { params: { menu_id: menuId } }));
+
+// ═══════════════ MENU ALLOCATION ═══════════════
+// POST /api/MenuAllocation/typewise_menu_allocation
+export const assignMenu = async ({
+  menuId,
+  userId = 0,
+  userTypeId = 0,
+  priority = 1,
+}) =>
+  unwrap(
+    apiClient.post("MenuAllocation/typewise_menu_allocation", {
+      tbl_menuinfo_id: Number(menuId),
+      tbl_userinfo_id: Number(userId) || 0,
+      tbl_type_id: Number(userTypeId) || 0,
+      priority: Number(priority) || 1,
     })
   );
-};
 
-// ═════════════════════════════════════════════════════
-// 3. SAVE MENU (create)
-// POST /api/Menu/saveMenu
-//
-// Body fields (from controller):
-//   menuName  (required, string)
-//   menuUrl   (nullable, string) — auto-generated when type=Access
-//   menuOrder (required, int >= 1)
-//   parentId  (nullable, int >= 0) — 0 or null = top-level
-//   type      (nullable, 'Menu' | 'Access')
-//   status    (nullable, 'On' | 'Off')
-//   icon      (nullable, string)
-//   createdBy (nullable, int)
-// ═════════════════════════════════════════════════════
-export const saveMenu = async (payload) => {
-  return unwrap(apiClient.post("Menu/saveMenu", payload));
-};
-
-// ═════════════════════════════════════════════════════
-// 4. UPDATE MENU
-// PUT /api/Menu/update_menu
-//
-// Body: same as saveMenu plus:
-//   id (required)
-// ═════════════════════════════════════════════════════
-export const updateMenu = async (payload) => {
-  return unwrap(apiClient.put("Menu/update_menu", payload));
-};
-
-// ═════════════════════════════════════════════════════
-// 5. DELETE MENU
-// DELETE /api/Menu/delete_menu?menu_id=X
-// Cascades to children + allocations
-// ═════════════════════════════════════════════════════
-export const deleteMenu = async (menuId) => {
-  return unwrap(
-    apiClient.delete("Menu/delete_menu", {
-      params: { menu_id: menuId },
+// DELETE /api/MenuAllocation/remove_menu_allocation
+export const unassignMenu = async ({
+  menuId,
+  userId = 0,
+  userTypeId = 0,
+}) =>
+  unwrap(
+    apiClient.delete("MenuAllocation/remove_menu_allocation", {
+      data: {
+        tbl_menuinfo_id: Number(menuId),
+        tbl_userinfo_id: Number(userId) || 0,
+        tbl_type_id: Number(userTypeId) || 0,
+      },
     })
   );
+
+// GET /api/MenuAllocation/get_all
+export const fetchAllocations = async (filters = {}) => {
+  const params = {};
+  if (filters.menuInfoId != null) params.menu_info_id = filters.menuInfoId;
+  if (filters.userInfoId != null) params.user_info_id = filters.userInfoId;
+  if (filters.userTypeId != null) params.user_type_id = filters.userTypeId;
+  if (filters.status) params.status = filters.status;
+  return unwrap(apiClient.get("MenuAllocation/get_all", { params }));
 };
 
-// ═════════════════════════════════════════════════════
-// 6. ASSIGN MENU
-// POST /api/Menu/typewise_menu_allocation
-//
-// Body (from controller):
-//   tbl_menuinfo_id (required)
-//   tbl_userinfo_id (nullable) — set this OR tbl_type_id
-//   tbl_type_id     (nullable) — set this OR tbl_userinfo_id
-//   priority        (optional)
-// ═════════════════════════════════════════════════════
-export const assignMenu = async (payload) => {
-  return unwrap(apiClient.post("Menu/typewise_menu_allocation", payload));
-};
+// Convenience wrappers
+export const assignMenuToUser = (menuId, userId, priority = 1) =>
+  assignMenu({ menuId, userId, userTypeId: 0, priority });
 
-// ═════════════════════════════════════════════════════
-// 7. UNASSIGN MENU
-// DELETE /api/Menu/remove_menu_allocation
-//
-// Body (from controller — reads from request body, not query):
-//   Id               (or id) — allocation id (required)
-//   tbl_menuinfo_id  (required)
-//   tbl_userinfo_id  (nullable)
-//   tbl_type_id      (nullable)
-// ═════════════════════════════════════════════════════
-export const unassignMenu = async (payload) => {
-  return unwrap(
-    apiClient.delete("Menu/remove_menu_allocation", { data: payload })
-  );
-};
+export const assignMenuToType = (menuId, userTypeId, priority = 1) =>
+  assignMenu({ menuId, userId: 0, userTypeId, priority });
+
+export const unassignMenuFromUser = (menuId, userId) =>
+  unassignMenu({ menuId, userId, userTypeId: 0 });
+
+export const unassignMenuFromType = (menuId, userTypeId) =>
+  unassignMenu({ menuId, userId: 0, userTypeId });
+
+// ─────────────────────────────────────────────────────
+// USER — used by AssignMenu page
+// GET /api/User/get_my_users
+// ─────────────────────────────────────────────────────
+export const fetchMyUsers = async () =>
+  unwrap(apiClient.get("User/get_my_users"));
+
+// ─────────────────────────────────────────────────────
+// USER TYPE — used by AssignMenu page
+// GET /api/UserType/get_all
+// ─────────────────────────────────────────────────────
+export const fetchUserTypes = async () =>
+  unwrap(apiClient.get("UserType/get_all"));

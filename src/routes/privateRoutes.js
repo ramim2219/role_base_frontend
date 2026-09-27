@@ -43,6 +43,13 @@ export const privateRoutes = [
     isPrivate: true,
     showInMenu: true,
   },
+  {
+    name: "Assign Menu",
+    path: "/assign-menu",
+    component: lazy(() => import("../pages/MenuManagement/AssignMenu.jsx")),
+    isPrivate: true,
+    showInMenu: true,
+  },
 //   {
 //     name: "Profile",
 //     path: "/profile",
