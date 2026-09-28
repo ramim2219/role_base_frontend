@@ -310,7 +310,7 @@ export default function AssignMenu() {
   return (
     <div>
       <PageHeader
-        title="Assign Menu"
+        title="Assign Menu For Super Admin"
         icon={UserCheck}
         breadcrumb
         onClickGuide={() => showInfoToast("Opening guide...")}

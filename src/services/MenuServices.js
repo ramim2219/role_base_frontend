@@ -101,3 +101,15 @@ export const fetchMyUsers = async () =>
 // ─────────────────────────────────────────────────────
 export const fetchUserTypes = async () =>
   unwrap(apiClient.get("UserType/get_all"));
+
+// GET /api/MenuAllocation/get_assigned_menus
+//   opts: { userId?, userTypeId? }
+//   If both omitted, the backend uses the caller's own ids.
+export const fetchAssignedMenus = async (opts = {}) => {
+  const params = {};
+  if (opts.userId != null) params.user_info_id = opts.userId;
+  if (opts.userTypeId != null) params.user_type_id = opts.userTypeId;
+  return unwrap(
+    apiClient.get("MenuAllocation/get_assigned_menus", { params })
+  );
+};

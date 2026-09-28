@@ -30,20 +30,38 @@ import {
 
 import {
   fetchMyUsers,
+  saveUser,
   updateUser,
   deleteUser,
 } from "../../services/userServices";
 
+import { fetchUserTypes } from "../../services/MenuServices";
+import {
+  fetchCompanies,
+  fetchCompanyById,
+} from "../../services/companyServices";
+import { useAuth } from "../../context/AuthContext";
+
 export default function Users() {
+  // =====================================================
+  // AUTH
+  // =====================================================
+  const { user } = useAuth();
+  const isSuperAdmin =
+    Array.isArray(user?.roles) && user.roles.includes("super_admin");
+
   // =====================================================
   // STATE
   // =====================================================
   const [users, setUsers] = useState([]);
+  const [userTypes, setUserTypes] = useState([]);
+  const [companies, setCompanies] = useState([]);       // companies the user created
+  const [ownCompany, setOwnCompany] = useState(null);   // the user's own company (via user.company_id)
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Edit modal
-  const [modalMode, setModalMode] = useState(null); // "edit" | null
+  // Modal mode: "create" | "edit" | null
+  const [modalMode, setModalMode] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editRow, setEditRow] = useState(null);
   const [formError, setFormError] = useState("");
@@ -61,11 +79,22 @@ export default function Users() {
     email: "",
     username: "",
     password: "",
+    company_id: "",
+    user_type_id: "",
     status: 1,
   });
 
   // =====================================================
-  // LOAD USERS
+  // DERIVED — which mode does the company field use?
+  // =====================================================
+  // Case A: user created at least one company → normal dropdown
+  // Case B: user created none, but has an own company → locked to own company
+  // Case C: user created none and has no own company → optional, empty
+  const hasOwnCompanies = companies.length > 0;
+  const companyLocked = !hasOwnCompanies && !!ownCompany;
+
+  // =====================================================
+  // LOAD
   // =====================================================
   const loadUsers = async () => {
     setLoading(true);
@@ -79,24 +108,61 @@ export default function Users() {
     }
   };
 
+  const loadUserTypes = async () => {
+    try {
+      const res = await fetchUserTypes(
+        isSuperAdmin ? {} : { onlyMine: true }
+      );
+      setUserTypes(res.data || []);
+    } catch (err) {
+      showErrorToast(err.message || "Failed to load user types.");
+    }
+  };
+
+  const loadCompanies = async () => {
+    try {
+      const res = await fetchCompanies(!isSuperAdmin);
+      setCompanies(res.data || []);
+
+      // Also fetch the user's own company (from user.company_id)
+      if (user?.company_id) {
+        try {
+          const own = await fetchCompanyById(user.company_id);
+          setOwnCompany(own?.data || null);
+        } catch {
+          setOwnCompany(null);
+        }
+      } else {
+        setOwnCompany(null);
+      }
+    } catch (err) {
+      showErrorToast(err.message || "Failed to load companies.");
+    }
+  };
+
   useEffect(() => {
     loadUsers();
+    loadUserTypes();
+    loadCompanies();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // =====================================================
   // TABLE COLUMNS
   // =====================================================
   const columns = [
-    { key: "sl",       header: "SL",     width: 60 },
-    { key: "name",     header: "Name" },
-    { key: "email",    header: "Email" },
-    { key: "username", header: "Username" },
-    { key: "status",   header: "Status" },
-    { key: "actions",  header: "Actions" },
+    { key: "sl",        header: "SL",        width: 60 },
+    { key: "name",      header: "Name" },
+    { key: "email",     header: "Email" },
+    { key: "username",  header: "Username" },
+    { key: "company",   header: "Company" },
+    { key: "user_type", header: "User Type" },
+    { key: "status",    header: "Status" },
+    { key: "actions",   header: "Actions" },
   ];
 
   // =====================================================
-  // ROW DATA (with status badge + action buttons)
+  // ROW DATA
   // =====================================================
   const tableData = useMemo(() => {
     const statusBadge = (s) => {
@@ -126,6 +192,8 @@ export default function Users() {
         name: u.name,
         email: u.email,
         username: u.username,
+        company_id: u.company_id,
+        user_type_id: u.user_type_id,
         status: u.status,
       };
 
@@ -135,6 +203,8 @@ export default function Users() {
         name: u.name || "-",
         email: u.email || "-",
         username: u.username || "-",
+        company: u.company?.name || "—",
+        user_type: u.user_type?.name || "—",
         status: statusBadge(u.status),
 
         actions: (
@@ -180,6 +250,8 @@ export default function Users() {
       email: "",
       username: "",
       password: "",
+      company_id: "",
+      user_type_id: "",
       status: 1,
     });
     setErrors({});
@@ -192,8 +264,18 @@ export default function Users() {
     if (!form.email.trim()) errs.email = "Email is required";
     else if (!/^\S+@\S+\.\S+$/.test(form.email)) errs.email = "Invalid email";
     if (!form.username.trim()) errs.username = "Username is required";
-    if (form.password && form.password.length < 6)
-      errs.password = "Password must be at least 6 characters";
+
+    if (modalMode === "create") {
+      if (!form.password) errs.password = "Password is required";
+      else if (form.password.length < 6)
+        errs.password = "Password must be at least 6 characters";
+      if (!form.user_type_id) errs.user_type_id = "User type is required";
+      // company_id is NOT required — user can create without a company
+    } else {
+      if (form.password && form.password.length < 6)
+        errs.password = "Password must be at least 6 characters";
+    }
+
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -201,6 +283,36 @@ export default function Users() {
   // =====================================================
   // OPEN MODALS
   // =====================================================
+  const openCreateModal = async () => {
+    setModalMode("create");
+    setEditRow(null);
+    resetForm();
+
+    // If the user created no companies but has their own,
+    // resolve it (using cache first, then fetching) so the locked
+    // field has a valid company_id to send.
+    if (!hasOwnCompanies && user?.company_id) {
+      let company = ownCompany;
+      if (!company) {
+        try {
+          const res = await fetchCompanyById(user.company_id);
+          company = res?.data || null;
+          setOwnCompany(company);
+        } catch {
+          company = null;
+        }
+      }
+      if (company) {
+        setForm((prev) => ({
+          ...prev,
+          company_id: String(company.id),
+        }));
+      }
+    }
+
+    setModalOpen(true);
+  };
+
   const openEditModal = (row) => {
     setModalMode("edit");
     setEditRow(row);
@@ -210,6 +322,8 @@ export default function Users() {
       email: row.email || "",
       username: row.username || "",
       password: "",
+      company_id: row.company_id ?? "",
+      user_type_id: row.user_type_id ?? "",
       status: Number(row.status) === 1 ? 1 : 0,
     });
     setErrors({});
@@ -225,7 +339,7 @@ export default function Users() {
   };
 
   // =====================================================
-  // SAVE (update only)
+  // SAVE (create or update)
   // =====================================================
   const handleSave = async () => {
     if (!validateForm()) {
@@ -237,26 +351,55 @@ export default function Users() {
     setFormError("");
 
     try {
-      const payload = {
-        id: form.id,
-        name: form.name.trim(),
-        email: form.email.trim(),
-        username: form.username.trim(),
-        status: Number(form.status),
-      };
+      if (modalMode === "create") {
+        const payload = {
+          name: form.name.trim(),
+          email: form.email.trim(),
+          username: form.username.trim(),
+          password: form.password,
+          user_type_id: Number(form.user_type_id),
+          status: Number(form.status),
+        };
 
-      // Only send password if the user typed one
-      if (form.password.trim()) {
-        payload.password = form.password;
+        // Only send company_id if we actually have one (dropdown pick
+        // OR locked auto-fill). Empty string → omit → user has no company.
+        if (form.company_id) {
+          payload.company_id = Number(form.company_id);
+        }
+
+        await saveUser(payload);
+        showSuccessToast("User created successfully");
+      } else {
+        const payload = {
+          id: form.id,
+          name: form.name.trim(),
+          email: form.email.trim(),
+          username: form.username.trim(),
+          status: Number(form.status),
+        };
+
+        if (form.company_id) {
+          payload.company_id = Number(form.company_id);
+        }
+        if (form.user_type_id) {
+          payload.user_type_id = Number(form.user_type_id);
+        }
+        if (form.password.trim()) {
+          payload.password = form.password;
+        }
+
+        await updateUser(payload);
+        showSuccessToast("User updated successfully");
       }
-
-      await updateUser(payload);
-      showSuccessToast("User updated successfully");
 
       closeModal();
       await loadUsers();
     } catch (err) {
-      const msg = err.message || "Failed to update user";
+      const msg =
+        err.message ||
+        (modalMode === "create"
+          ? "Failed to create user"
+          : "Failed to update user");
       setFormError(msg);
       showErrorToast(msg);
     } finally {
@@ -296,6 +439,35 @@ export default function Users() {
     { value: 0, label: "Inactive" },
   ];
 
+  // "No company" is a valid choice
+  const companyOptions = useMemo(
+    () => [
+      { value: "", label: "— No company —" },
+      ...companies.map((c) => ({ value: String(c.id), label: c.name })),
+    ],
+    [companies]
+  );
+
+  const typeOptions = useMemo(
+    () => [
+      { value: "", label: "— Select a user type —" },
+      ...userTypes.map((t) => ({
+        value: String(t.id),
+        label: t.company?.name ? `${t.name} (${t.company.name})` : t.name,
+      })),
+    ],
+    [userTypes]
+  );
+
+  const modalTitle = modalMode === "create" ? "Add User" : "Edit User";
+
+  const modalSubtitle =
+    modalMode === "create"
+      ? "Create a new user"
+      : editRow?.name;
+
+  const modalIcon = modalMode === "create" ? Plus : Pencil;
+
   // =====================================================
   // RENDER
   // =====================================================
@@ -314,6 +486,12 @@ export default function Users() {
         icon={UsersIcon}
         headerBgColor="light"
         buttons={[
+          {
+            text: "Add User",
+            icon: Plus,
+            color: "primary",
+            onClick: openCreateModal,
+          },
           {
             text: "Refresh",
             icon: RefreshCw,
@@ -338,22 +516,22 @@ export default function Users() {
           striped
           stickyHeader
           emptyMessage="No users yet"
-          emptyHint="Users you create will appear here."
+          emptyHint="Click 'Add User' to create your first user."
         />
       </CardBox>
 
-      {/* ─── Edit User Modal ─── */}
+      {/* ─── Add / Edit User Modal ─── */}
       <AppModal
         show={modalOpen}
         onHide={closeModal}
-        title="Edit User"
-        subtitle={editRow?.name}
-        icon={Pencil}
+        title={modalTitle}
+        subtitle={modalSubtitle}
+        icon={modalIcon}
         size="lg"
         footer={
           <LoadingButton
             isLoading={saving}
-            text="Save Changes"
+            text={modalMode === "create" ? "Create User" : "Save Changes"}
             icon={Save}
             onClick={handleSave}
             className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold uppercase transition-colors disabled:opacity-60"
@@ -403,10 +581,57 @@ export default function Users() {
             type="password"
             value={form.password}
             onChange={(e) => setField("password", e.target.value)}
-            placeholder="Leave blank to keep current"
+            placeholder={
+              modalMode === "create"
+                ? "Min 6 characters"
+                : "Leave blank to keep current"
+            }
             icon={Lock}
+            required={modalMode === "create"}
             error={errors.password}
           />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Company field — three states:
+                - locked  : user created no companies, but has an own company
+                - dropdown: user created companies → optional, can also pick "No company"
+            */}
+            {companyLocked ? (
+              <div className="form-group">
+                <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Company
+                </label>
+                <div className="flex items-center justify-between px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
+                  <span className="truncate">
+                    {ownCompany?.name || "—"}
+                  </span>
+                  <Lock className="w-3.5 h-3.5 text-gray-400" />
+                </div>
+                <small className="block mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Auto-selected from your account.
+                </small>
+              </div>
+            ) : (
+              <SelectInput
+                label="Company"
+                name="company_id"
+                value={form.company_id}
+                onChange={(e) => setField("company_id", e.target.value)}
+                options={companyOptions}
+                error={errors.company_id}
+              />
+            )}
+
+            <SelectInput
+              label="User Type"
+              name="user_type_id"
+              value={form.user_type_id}
+              onChange={(e) => setField("user_type_id", e.target.value)}
+              options={typeOptions}
+              required={modalMode === "create"}
+              error={errors.user_type_id}
+            />
+          </div>
 
           <SelectInput
             label="Status"
@@ -418,7 +643,13 @@ export default function Users() {
 
           <AlertMessage
             type="info"
-            message="Leave password blank to keep the current one."
+            message={
+              modalMode === "create"
+                ? companyLocked
+                  ? "This user will be attached to your company."
+                  : "You can create a user with no company by leaving the Company field empty."
+                : "Leave password blank to keep the current one."
+            }
           />
         </div>
       </AppModal>

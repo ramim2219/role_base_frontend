@@ -92,12 +92,13 @@ export default function Company() {
   });
 
   // =====================================================
-  // LOAD
+  // LOAD — only companies the current user created
   // =====================================================
   const loadCompanies = async () => {
     setLoading(true);
     try {
-      const res = await fetchCompanies();
+      // true → sends ?only_mine=1 → backend filters by created_by
+      const res = await fetchCompanies(true);
       setCompanies(res.data || []);
     } catch (err) {
       showErrorToast(err.message || "Failed to load companies.");
@@ -118,6 +119,7 @@ export default function Company() {
   useEffect(() => {
     loadCompanies();
     loadCompanyTypes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // =====================================================
@@ -351,7 +353,6 @@ export default function Company() {
         status: Number(form.status),
       };
 
-      // Attach the file when the user picked one
       if (logoFile) {
         payload.logo = logoFile;
       }
@@ -435,7 +436,7 @@ export default function Company() {
       />
 
       <CardBox
-        title="All Companies"
+        title="My Companies"
         subTitle={`${companies.length} item(s)`}
         icon={Building2}
         headerBgColor="light"

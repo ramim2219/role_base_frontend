@@ -25,7 +25,7 @@ import {
 } from "../../Helper/TosterHelper";
 
 import {
-  fetchCompanyTypes,
+  fetchCompanyTypesByCreator,
   saveCompanyType,
   updateCompanyType,
   deleteCompanyType,
@@ -39,31 +39,29 @@ export default function CompanyType() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Modal mode: "create" | "edit" | null
   const [modalMode, setModalMode] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editRow, setEditRow] = useState(null);
   const [formError, setFormError] = useState("");
   const [errors, setErrors] = useState({});
 
-  // Confirm-delete modal
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmRow, setConfirmRow] = useState(null);
   const [confirmBusy, setConfirmBusy] = useState(false);
 
-  // Form state
   const [form, setForm] = useState({
     id: 0,
     name: "",
   });
 
   // =====================================================
-  // LOAD
+  // LOAD — only types created by the current user
   // =====================================================
   const loadTypes = async () => {
     setLoading(true);
     try {
-      const res = await fetchCompanyTypes();
+      // No arg → backend defaults to the current user's id
+      const res = await fetchCompanyTypesByCreator();
       setTypes(res.data || []);
     } catch (err) {
       showErrorToast(err.message || "Failed to load company types.");
@@ -74,13 +72,14 @@ export default function CompanyType() {
 
   useEffect(() => {
     loadTypes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // =====================================================
   // TABLE COLUMNS
   // =====================================================
   const columns = [
-    { key: "sl",        header: "SL",     width: 60 },
+    { key: "sl",        header: "SL",      width: 60 },
     { key: "name",      header: "Name" },
     { key: "createdAt", header: "Created" },
     { key: "actions",   header: "Actions" },
@@ -270,7 +269,7 @@ export default function CompanyType() {
       />
 
       <CardBox
-        title="All Company Types"
+        title="My Company Types"
         subTitle={`${types.length} item(s)`}
         icon={Building2}
         headerBgColor="light"

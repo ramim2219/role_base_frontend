@@ -1,6 +1,5 @@
 import apiClient from "../Axios/axiosConfig";
 
-// Same unwrap pattern as MenuServices
 const OK = 1200;
 
 async function unwrap(promise) {
@@ -13,22 +12,30 @@ async function unwrap(promise) {
   return body;
 }
 
-export const fetchUserById = async (userId) => {
-  return unwrap(
+// ─── USERS ──────────────────────────────────────────
+
+export const fetchUserById = async (userId) =>
+  unwrap(
     apiClient.get("User/get_user_by_id", { params: { user_id: userId } })
   );
-};
 
-export const fetchMyUsers = async () => {
-  return unwrap(apiClient.get("User/get_my_users"));
-};
+export const fetchMyUsers = async () =>
+  unwrap(apiClient.get("User/get_my_users"));
 
-export const updateUser = async (payload) => {
-  return unwrap(apiClient.put("User/update_user", payload));
-};
+export const saveUser = async (payload) =>
+  unwrap(apiClient.post("User/save_user", payload));
 
-export const deleteUser = async (userId) => {
-  return unwrap(
-    apiClient.delete("User/delete_user", { data: { id: userId } })
+export const updateUser = async (payload) =>
+  unwrap(apiClient.put("User/update_user", payload));
+
+export const deleteUser = async (userId) =>
+  unwrap(apiClient.delete("User/delete_user", { data: { id: userId } }));
+
+// ─── USER TYPES (creator-scoped) ────────────────────
+
+export const fetchUserTypesByCreator = async (createdBy = null) =>
+  unwrap(
+    apiClient.get("UserType/get_user_type_by_createdby", {
+      params: createdBy ? { created_by: createdBy } : {},
+    })
   );
-};

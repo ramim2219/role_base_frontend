@@ -25,12 +25,12 @@ import {
 } from "../../Helper/TosterHelper";
 
 import {
-  fetchUserTypes,
   saveUserType,
   updateUserType,
   deleteUserType,
 } from "../../services/userTypeServices";
 
+import { fetchUserTypesByCreator } from "../../services/userServices";
 import { useAuth } from "../../context/AuthContext";
 
 export default function UserType() {
@@ -40,8 +40,6 @@ export default function UserType() {
   const { user } = useAuth();
   const myCompanyId = user?.company_id ?? null;
 
-  // A super admin is expected to have NO company.
-  // They create global user types (company_id = null).
   const isSuperAdmin =
     Array.isArray(user?.roles) && user.roles.includes("super_admin");
 
@@ -65,12 +63,13 @@ export default function UserType() {
   const [form, setForm] = useState({ id: 0, name: "" });
 
   // =====================================================
-  // LOAD
+  // LOAD — only types created by the current user
   // =====================================================
   const loadTypes = async () => {
     setLoading(true);
     try {
-      const res = await fetchUserTypes();
+      // No arg → backend defaults to the current user's id
+      const res = await fetchUserTypesByCreator();
       setTypes(res.data || []);
     } catch (err) {
       showErrorToast(err.message || "Failed to load user types.");
@@ -81,6 +80,7 @@ export default function UserType() {
 
   useEffect(() => {
     loadTypes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // =====================================================
@@ -115,7 +115,6 @@ export default function UserType() {
         ...t,
         sl: idx + 1,
         name: t.name || "-",
-        // Global types have no company
         company: t.company?.name || (isSuperAdmin ? "Global" : "—"),
         createdAt: formatDate(t.created_at),
 
@@ -210,7 +209,6 @@ export default function UserType() {
       return;
     }
 
-    // A regular (non-super-admin) user MUST have a company.
     if (!isSuperAdmin && !myCompanyId) {
       const msg =
         "Your account is not linked to a company. Contact your administrator.";
@@ -225,7 +223,6 @@ export default function UserType() {
     try {
       const payload = {
         name: form.name.trim(),
-        // super admin → null (global); others → their company id
         company_id: isSuperAdmin ? null : Number(myCompanyId),
       };
 
@@ -298,7 +295,7 @@ export default function UserType() {
       />
 
       <CardBox
-        title="All User Types"
+        title="My User Types"
         subTitle={`${types.length} item(s)`}
         icon={UserCog}
         headerBgColor="light"

@@ -1,4 +1,7 @@
+// src/context/AuthContext.jsx
 import { createContext, useContext, useState, useCallback, useEffect } from "react";
+// at the top
+import { setLoggingOut } from "../Axios/axiosConfig";
 
 const AuthContext = createContext();
 
@@ -38,13 +41,50 @@ export function AuthProvider({ children }) {
     const stored = localStorage.getItem("auth_user");
     return stored ? JSON.parse(stored) : null;
   });
+  const [menus, setMenus] = useState(() => {
+    const stored = localStorage.getItem("auth_menus");
+    return stored ? JSON.parse(stored) : [];
+  });
   const [loading, setLoading] = useState(false);
+  const [menusLoading, setMenusLoading] = useState(false);
 
   // Persist user whenever it changes
   useEffect(() => {
     if (user) localStorage.setItem("auth_user", JSON.stringify(user));
     else localStorage.removeItem("auth_user");
   }, [user]);
+
+  // Persist menus whenever they change
+  useEffect(() => {
+    if (menus?.length) {
+      localStorage.setItem("auth_menus", JSON.stringify(menus));
+    } else {
+      localStorage.removeItem("auth_menus");
+    }
+  }, [menus]);
+
+  // ─── load assigned menus ────────────────────────────
+  const loadMenus = useCallback(async () => {
+    if (!getToken()) {
+      setMenus([]);
+      return [];
+    }
+
+    setMenusLoading(true);
+    try {
+      // No args — backend uses the logged-in user's id + user_type_id
+      const res = await apiFetch("/MenuAllocation/get_assigned_menus");
+      const tree = res?.data || [];
+      setMenus(tree);
+      return tree;
+    } catch (e) {
+      console.warn("Failed to load assigned menus:", e.message);
+      setMenus([]);
+      return [];
+    } finally {
+      setMenusLoading(false);
+    }
+  }, []);
 
   // ─── login ──────────────────────────────────────────
   const login = useCallback(async ({ email, password }) => {
@@ -60,14 +100,19 @@ export function AuthProvider({ children }) {
       localStorage.setItem("auth_token", token);
       setUser(apiUser);
 
+      // Pull the assigned menus right after login
+      await loadMenus();
+
       return apiUser;
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loadMenus]);
 
   // ─── logout ─────────────────────────────────────────
   const logout = useCallback(async () => {
+  setLoggingOut(true);   // ← add this line first
+
     try {
       if (getToken()) {
         await apiFetch("/auth/logout", { method: "POST" });
@@ -77,14 +122,29 @@ export function AuthProvider({ children }) {
     } finally {
       localStorage.removeItem("auth_token");
       localStorage.removeItem("auth_user");
+      localStorage.removeItem("auth_menus");
       setUser(null);
+      setMenus([]);
     }
   }, []);
+
+  // ─── rehydrate on first load ────────────────────────
+  useEffect(() => {
+    if (!getToken()) return;
+
+    (async () => {
+      // Fetch menus even if user is already in localStorage
+      await loadMenus();
+    })();
+  }, [loadMenus]);
 
   return (
     <AuthContext.Provider
       value={{
         user,
+        menus,
+        menusLoading,
+        loadMenus,
         loading,
         isAuthenticated: !!user,
         login,

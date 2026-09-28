@@ -25,6 +25,8 @@ function toFormData(obj) {
 
 // ─────────────────────────────────────────────────────
 // LIST
+// GET /api/Company/get_all
+//   onlyMine = true  → sends ?only_mine=1
 // ─────────────────────────────────────────────────────
 export const fetchCompanies = async (onlyMine = false) =>
   unwrap(
@@ -35,9 +37,23 @@ export const fetchCompanies = async (onlyMine = false) =>
 
 // ─────────────────────────────────────────────────────
 // GET BY ID
+// GET /api/Company/get_by_id?id=X
 // ─────────────────────────────────────────────────────
 export const fetchCompanyById = async (id) =>
   unwrap(apiClient.get("Company/get_by_id", { params: { id } }));
+
+// ─────────────────────────────────────────────────────
+// GET BY CREATOR
+// GET /api/Company/get_company_by_createdby?created_by=X
+//   – Super admin can pass any id
+//   – Regular admins must omit it (defaults to their own id)
+// ─────────────────────────────────────────────────────
+export const fetchCompaniesByCreator = async (createdBy = null) =>
+  unwrap(
+    apiClient.get("Company/get_company_by_createdby", {
+      params: createdBy ? { created_by: createdBy } : {},
+    })
+  );
 
 // ─────────────────────────────────────────────────────
 // CREATE
@@ -79,6 +95,7 @@ export const updateCompany = async (payload) => {
 
 // ─────────────────────────────────────────────────────
 // DELETE
+// DELETE /api/Company/delete
 // ─────────────────────────────────────────────────────
 export const deleteCompany = async (id) =>
   unwrap(apiClient.delete("Company/delete", { data: { id } }));

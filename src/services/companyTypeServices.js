@@ -25,3 +25,11 @@ export const updateCompanyType = async (payload) =>
 
 export const deleteCompanyType = async (id) =>
   unwrap(apiClient.delete("CompanyType/delete", { data: { id } }));
+// Creator-scoped list
+//   createdBy = null → defaults to the current user's id (backend)
+export const fetchCompanyTypesByCreator = async (createdBy = null) =>
+  unwrap(
+    apiClient.get("CompanyType/get_company_type_by_createdby", {
+      params: createdBy ? { created_by: createdBy } : {},
+    })
+  );

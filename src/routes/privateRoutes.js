@@ -44,8 +44,8 @@ export const privateRoutes = [
     showInMenu: true,
   },
   {
-    name: "Assign Menu",
-    path: "/assign-menu",
+    name: "Assign Menu For Super Admin",
+    path: "/assign-menu-all",
     component: lazy(() => import("../pages/MenuManagement/AssignMenu.jsx")),
     isPrivate: true,
     showInMenu: true,

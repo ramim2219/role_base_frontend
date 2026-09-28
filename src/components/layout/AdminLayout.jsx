@@ -1,7 +1,9 @@
+// src/components/layout/AdminLayout.jsx
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
+import Footer from "../Footer";
 
 export default function AdminLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -19,7 +21,7 @@ export default function AdminLayout() {
 
       {/* Main area (offset by sidebar width on desktop) */}
       <div
-        className={`transition-all duration-300 ${
+        className={`min-h-screen flex flex-col transition-all duration-300 ${
           sidebarCollapsed ? "lg:ml-20" : "lg:ml-64"
         }`}
       >
@@ -29,9 +31,11 @@ export default function AdminLayout() {
           onToggleMobile={() => setMobileOpen(true)}
         />
 
-        <main className="p-4 lg:p-6">
+        <main className="flex-1 p-4 lg:p-6">
           <Outlet />
         </main>
+
+        <Footer version="1.0.0" />
       </div>
     </div>
   );
