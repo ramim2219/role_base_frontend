@@ -57,6 +57,13 @@ export const privateRoutes = [
     isPrivate: true,
     showInMenu: true,
   },
+  {
+    name: "User Details",
+    path: "/user-details",
+    component: lazy(() => import("../pages/UserManagement/UserDetails.jsx")),
+    isPrivate: true,
+    showInMenu: true,
+  },
 //   {
 //     name: "Profile",
 //     path: "/profile",
