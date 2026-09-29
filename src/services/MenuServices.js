@@ -113,3 +113,10 @@ export const fetchAssignedMenus = async (opts = {}) => {
     apiClient.get("MenuAllocation/get_assigned_menus", { params })
   );
 };
+
+// GET /api/MenuAllocation/get_my_menus
+//   No params — the backend resolves the user from the auth token,
+//   pulls menus assigned to the user AND their user type,
+//   and returns a nested tree.
+export const fetchMyMenus = async () =>
+  unwrap(apiClient.get("MenuAllocation/get_my_menus"));
