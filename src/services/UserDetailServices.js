@@ -36,7 +36,6 @@ export const fetchUserDetailByUserIdCreator = async (userId) =>
 // ─────────────────────────────────────────────────────
 // 3. ALL
 // GET /api/UserDetail/get_all_userDetails
-//   opts: { onlyMine?, createdBy?, search? }
 // ─────────────────────────────────────────────────────
 export const fetchAllUserDetails = async (opts = {}) => {
   const params = {};
@@ -49,7 +48,7 @@ export const fetchAllUserDetails = async (opts = {}) => {
 // ─────────────────────────────────────────────────────
 // 4. UPDATE
 // PUT /api/UserDetail/update_userDetails
-//   payload may include `image` (File) — will be sent as multipart
+//   payload may include `image` (File) — sent as multipart with _method=PUT
 // ─────────────────────────────────────────────────────
 export const updateUserDetails = async (payload) => {
   const hasFile = payload?.image instanceof File;
@@ -58,15 +57,15 @@ export const updateUserDetails = async (payload) => {
     return unwrap(apiClient.put("UserDetail/update_userDetails", payload));
   }
 
-  // Build multipart form data when a file is present
   const fd = new FormData();
   Object.entries(payload).forEach(([key, value]) => {
     if (value === null || value === undefined) return;
     fd.append(key, value);
   });
+  fd.append("_method", "PUT");
 
   return unwrap(
-    apiClient.put("UserDetail/update_userDetails", fd, {
+    apiClient.post("UserDetail/update_userDetails", fd, {
       headers: { "Content-Type": "multipart/form-data" },
     })
   );
@@ -84,7 +83,7 @@ export const deleteUserDetails = async (id) =>
   );
 
 // ─────────────────────────────────────────────────────
-// CREATE / UPSERT (self-service)
+// 6. CREATE / UPSERT (self-service)
 // POST /api/UserDetail/save_userDetails
 // ─────────────────────────────────────────────────────
 export const saveUserDetails = async (payload) => {
