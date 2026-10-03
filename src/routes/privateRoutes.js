@@ -80,7 +80,7 @@ export const privateRoutes = [
   },
   {
     name: "Units Management",
-    path: "/unit-management",
+    path: "/units-management",
     component: lazy(() => import("../pages/ProductsManagement/Unit.jsx")),
     isPrivate: true,
     showInMenu: true,
@@ -92,39 +92,66 @@ export const privateRoutes = [
     isPrivate: true,
     showInMenu: true,
   },
-//   {
-//     name: "Profile",
-//     path: "/profile",
-//     component: lazy(() => import("../pages/Profile")),
-//     isPrivate: true,
-//     showInMenu: true,
-//   },
-//   {
-//     name: "Settings",
-//     path: "/settings",
-//     component: lazy(() => import("../pages/Settings")),
-//     isPrivate: true,
-//     showInMenu: true,
-//   },
-//   {
-//     name: "Users",
-//     path: "/users",
-//     component: lazy(() => import("../pages/Users")),
-//     isPrivate: true,
-//     showInMenu: true,
-//   },
-//   {
-//     name: "Help",
-//     path: "/help",
-//     component: lazy(() => import("../pages/Help")),
-//     isPrivate: true,
-//     showInMenu: true,
-//   },
-//   {
-//     name: "Billing",
-//     path: "/billing",
-//     component: lazy(() => import("../pages/Billing")),
-//     isPrivate: true,
-//     showInMenu: true,
-//   },
+  {
+    name: "Products",
+    path: "/products",
+    component: lazy(() => import("../pages/ProductsManagement/Product.jsx")),
+    isPrivate: true,
+    showInMenu: true,
+  },
+  {
+    name: "Product Types",
+    path: "/product-types",
+    component: lazy(() => import("../pages/ProductsManagement/ProductType.jsx")),
+    isPrivate: true,
+    showInMenu: true,
+  },
+  {
+    name: "Barcodes",
+    path: "/barcodes",
+    component: lazy(() => import("../pages/ProductsManagement/Barcode.jsx")),
+    isPrivate: true,
+    showInMenu: true,
+  },
+
+  // ─── Inventory Management ───
+  {
+    name: "Suppliers",
+    path: "/suppliers",
+    component: lazy(() => import("../pages/Inventory/Supplier.jsx")),
+    isPrivate: true,
+    showInMenu: true,
+  },
+  {
+    name: "Warehouses",
+    path: "/warehouses",
+    component: lazy(() => import("../pages/Inventory/Warehouse.jsx")),
+    isPrivate: true,
+    showInMenu: true,
+  },
+  {
+    name: "Product Suppliers",
+    path: "/product-suppliers",
+    component: lazy(() =>
+      import("../pages/Inventory/ProductSupplier.jsx")
+    ),
+    isPrivate: true,
+    showInMenu: true,
+  },
+  {
+    name: "Stock",
+    path: "/stock",
+    component: lazy(() => import("../pages/Inventory/Stock.jsx")),
+    isPrivate: true,
+    showInMenu: true,
+  },
+  {
+    name: "Stock Movements",
+    path: "/stock-movements",
+    component: lazy(() =>
+      import("../pages/Inventory/StockMovement.jsx")
+    ),
+    isPrivate: true,
+    showInMenu: true,
+  },
 ];
